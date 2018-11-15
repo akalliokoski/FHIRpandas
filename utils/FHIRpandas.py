@@ -7,8 +7,11 @@ import fhirclient.models.patient as p
 from fhirclient.models.fhirabstractbase import FHIRValidationError
 import pandas as pd
 
+# TODO: memory optimization, performance optimization
+#   ? flag for disabling bundles and resource cache?
+#   ? flush method
 
-def fromJSON(path):
+def fromJSON(path, strict=False):
     # TODO: how to handle relative path?
     #    * check from pandas.from_csv
     json_path = Path(path)
@@ -17,21 +20,29 @@ def fromJSON(path):
         # how does pandas handle it from.csv
         return None
     
-    bundles = {p.stem:_load_bundle(p) for p in json_path.glob('*.json')}
-    # remove missing bundles
-    bundles = {key:value for key, value in bundles.items() if value != None}
-    return FHIRpandas(bundles)
+    results = {p.stem:_load_bundle(p, strict) for p in json_path.glob('*.json')}
+    bundles = {key:item[0] for key, item in results.items() if item[0] != None}
+    invalidBundles = {key:item[1] for key, item in results.items() if item[1] != None}
 
-def _load_bundle(path):
+    return FHIRpandas(bundles, invalidBundles)
+
+def _load_bundle(path, strict):
+    error = None
+    
     try:
         with open(path) as file:
             json_data = json.load(file)
-            # disable validation
-            bundle = b.Bundle(json_data, strict=False)
+            bundle = b.Bundle(json_data)
+    except FHIRValidationError as validation_error:
+        bundle = None
+        error = validation_error
+        if (strict):
+            raise validation_error
     except:
         print(f'Unexpected error: {sys.exc_info()[0]}')
         raise
-    return bundle
+
+    return (bundle, error)
 
 class FHIRpandas:
 
@@ -39,8 +50,9 @@ class FHIRpandas:
 
     _encounters = None
 
-    def __init__(self, bundles):
+    def __init__(self, bundles, invalidBundles):
         self.bundles = bundles
+        self.invalidBundles = invalidBundles
 
     def _getResourcesFromBundle(self, bundle, resource_type):
         if (bundle.entry == None):
