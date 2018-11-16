@@ -7,6 +7,8 @@ import fhirclient.models.patient as p
 from fhirclient.models.fhirabstractbase import FHIRValidationError
 import pandas as pd
 
+import utils.constants.encounter as enc
+
 # TODO: memory optimization, performance optimization
 #   ? flag for disabling bundles and resource cache?
 #   ? flush method
@@ -22,13 +24,13 @@ def fromJSON(path, strict=False):
     
     results = {p.stem:_load_bundle(p, strict) for p in json_path.glob('*.json')}
     bundles = {key:item[0] for key, item in results.items() if item[0] != None}
-    invalidBundles = {key:item[1] for key, item in results.items() if item[1] != None}
+    validation_errors = {key:item[1] for key, item in results.items() if item[1] != None}
 
-    return FHIRpandas(bundles, invalidBundles)
+    return FHIRpandas(bundles, validation_errors)
 
 def _load_bundle(path, strict):
     error = None
-    
+
     try:
         with open(path) as file:
             json_data = json.load(file)
@@ -50,9 +52,9 @@ class FHIRpandas:
 
     _encounters = None
 
-    def __init__(self, bundles, invalidBundles):
+    def __init__(self, bundles, validation_errors):
         self.bundles = bundles
-        self.invalidBundles = invalidBundles
+        self.validation_errors = validation_errors
 
     def _getResourcesFromBundle(self, bundle, resource_type):
         if (bundle.entry == None):
@@ -103,22 +105,13 @@ class FHIRpandas:
 
     def _getListValue(self, lst, index, default = None):
         return lst[index] if index < len(lst) else default
+
+    def _resourceToDict(self, resource, columns, paths):
+        values = [self._getValue(resource, paths[c].copy()) for c in columns]
+        return dict(zip(columns, values))
     
     def _encounterToDict(self, encounter):
-        # NOTE: SNOMED-CT code system expected
-        #   Should used code system be added also?
-        # NOTE: Only first of the codes (code, reason code) used
-        return {
-            "ID": encounter.id,
-            "Start": self._getValue(encounter, ["period", "start", "date"]),
-            "Stop": self._getValue(encounter, ["period", "end", "date"]),
-            "Patient": self._getValue(encounter, ["subject", "reference"]),
-            "EncounterClass": self._getValue(encounter, ["class_fhir", "code"]),
-            "Code": self._getValue(encounter, ["type", 0, "coding", 0, "code"]),
-            "Description": self._getValue(encounter, ["type", 0, "coding", 0, "display"]),
-            "ReasonCode": self._getValue(encounter, ["reason", 0, "coding", 0, "code"]),
-            "ReasonDescription": self._getValue(encounter, ["reason", 0, "coding", 0, "display"])
-        }
+        return self._resourceToDict(encounter, enc.COLUMNS, enc.PATHS)
 
     def encountersDataFrame(self):
         # TODO: use ids as index
