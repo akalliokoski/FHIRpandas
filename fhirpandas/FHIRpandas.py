@@ -7,16 +7,13 @@ import fhirclient.models.patient as p
 from fhirclient.models.fhirabstractbase import FHIRValidationError
 import pandas as pd
 
-import utils.constants.meta as meta
-import utils.constants.resources.encounter as ce
+import fhirpandas.constants.meta as meta
+import fhirpandas.constants.resources.encounter as ce
+import fhirpandas.utils.df_generation as df_generation
 
-# TODO: memory optimization, performance optimization
-#   ? flag for disabling bundles and resource cache?
-#   ? flush method
+ENCOUNTER_RESOURCE_TYPE = ce.RESOURCE_TYPE
 
 def fromJSON(path, strict=False):
-    # TODO: how to handle relative path?
-    #    * check from pandas.from_csv
     json_path = Path(path)
     if (not json_path.is_dir()):
         # TODO: throw expections (path )?
@@ -49,7 +46,7 @@ def _load_bundle(path, strict):
 
 class FHIRpandas:
 
-    _encounters = None
+    _resource_cache = {}
 
     def __init__(self, bundles, validation_errors):
         self.bundles = bundles
@@ -65,7 +62,7 @@ class FHIRpandas:
         acc.extend(self._getResourcesFromBundle(bundle, resourceType))
         return acc
 
-    def _getResources(self, resourceType):
+    def _find_resources(self, resourceType):
         resources = reduce(
             lambda acc, bundle: self._appendResources(acc, bundle, resourceType),
             self.bundles.values(),
@@ -78,44 +75,15 @@ class FHIRpandas:
             
         return (resources, ids)
 
-    def _getEncounters(self):
-        if (self._encounters == None):
-            encounters, ids = self._getResources(ce.RESOURCE_TYPE)
-            self._encounters = dict(zip(ids, encounters))
-
-        return self._encounters
-
-    def _getValue(self, obj, path, default = None):
-        if (len(path) == 0 or obj == None):
-            return default
+    def _getResources(self, resource_type):
+        cached_res = self._resource_cache.get(resource_type, None)
+        if (cached_res != None):
+            return cached_res
         
-        nextAttr = path.pop(0)
+        (resources, ids) = self._find_resources(resource_type)
+        self._resource_cache[resource_type] = dict(zip(ids, resources))
+        return resources
 
-        nextObj = None
-        if (isinstance(obj, list)):
-            nextObj = self._getListValue(obj, nextAttr, default)
-        else:
-            nextObj = getattr(obj, nextAttr, default)
-
-        if (len(path) == 0):
-            return nextObj
-        
-        return self._getValue(nextObj, path, default)
-
-    def _getListValue(self, lst, index, default = None):
-        return lst[index] if index < len(lst) else default
-
-    def _resourceToDict(self, resource):
-        res_type = resource.resource_type
-        paths = meta.paths(res_type)
-        columns = meta.columns(res_type)
-        values = [self._getValue(resource, paths[c].copy()) for c in columns]
-        return dict(zip(columns, values))
-
-    def encountersDataFrame(self):
-        # TODO: use ids as index
-        encounterDicts = [self._resourceToDict(e) for e in self._getEncounters().values()]
-        return pd.DataFrame(encounterDicts)
-
-
-
+    def create_df(self, resource_type):
+        resources = self._getResources(resource_type)
+        return df_generation.create_df(resources)

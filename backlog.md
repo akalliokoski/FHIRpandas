@@ -1,6 +1,8 @@
 
 * performance and memory optimization
     * use python generators (yield)
+    * flag for disabling bundles and resource cache?
+    * flush method?
 * bundle(s) to
     * csv
     * excel
@@ -8,6 +10,8 @@
     * throwing exceptions
     * check todos
 * add class FhirDataFrame
+* set DataFrame index
+* set DataFrame data types
 * python naming
 * python best practices
 * linting
