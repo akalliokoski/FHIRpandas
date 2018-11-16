@@ -8,7 +8,7 @@ from fhirclient.models.fhirabstractbase import FHIRValidationError
 import pandas as pd
 
 import utils.constants.meta as meta
-import utils.constants.encounters as ec
+import utils.constants.resources.encounter as ce
 
 # TODO: memory optimization, performance optimization
 #   ? flag for disabling bundles and resource cache?
@@ -80,7 +80,7 @@ class FHIRpandas:
 
     def _getEncounters(self):
         if (self._encounters == None):
-            encounters, ids = self._getResources(ec.RESOURCE_TYPE)
+            encounters, ids = self._getResources(ce.RESOURCE_TYPE)
             self._encounters = dict(zip(ids, encounters))
 
         return self._encounters

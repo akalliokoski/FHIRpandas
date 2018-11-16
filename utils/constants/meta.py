@@ -1,5 +1,5 @@
 
-import utils.constants.encounters as e
+import utils.constants.resources.encounter as e
 
 RESOURCE_TYPE = "RESOURCE_TYPE"
 COLUMNS = "COLUMNS"

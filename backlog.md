@@ -17,11 +17,13 @@
 
 * additional features
     * datetime columns generation
-    * an
+    * anonymization?
 
 * FHIR specifications support
     * should support all the values in codes
         * currently only first code is used e.g. from encounter code and reason code
+        * is it possible to add multiple values to cell in pandas?
+            * maybe not? use additional data frame
     * add also code system along with code values
         * currently SNOMED-CT code system expected
 
