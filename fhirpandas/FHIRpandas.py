@@ -13,7 +13,7 @@ import fhirpandas.utils.df_generation as df_generation
 
 ENCOUNTER_RESOURCE_TYPE = ce.RESOURCE_TYPE
 
-def fromJSON(path, strict=False):
+def from_json(path, strict=False):
     json_path = Path(path)
     if (not json_path.is_dir()):
         # TODO: throw expections (path )?
@@ -24,7 +24,7 @@ def fromJSON(path, strict=False):
     bundles = {key:item[0] for key, item in results.items() if item[0] != None}
     validation_errors = {key:item[1] for key, item in results.items() if item[1] != None}
 
-    return FHIRpandas(bundles, validation_errors)
+    return FhirPandas(bundles, validation_errors)
 
 def _load_bundle(path, strict):
     error = None
@@ -44,7 +44,7 @@ def _load_bundle(path, strict):
 
     return (bundle, error)
 
-class FHIRpandas:
+class FhirPandas:
 
     _resource_cache = {}
 
@@ -52,19 +52,19 @@ class FHIRpandas:
         self.bundles = bundles
         self.validation_errors = validation_errors
 
-    def _getResourcesFromBundle(self, bundle, resource_type):
+    def _find_resources_from_bundle(self, bundle, resource_type):
         if (bundle.entry == None):
             return []
         
         return [entry.resource for entry in bundle.entry if entry.resource.resource_type == resource_type]
 
-    def _appendResources(self, acc, bundle, resourceType):
-        acc.extend(self._getResourcesFromBundle(bundle, resourceType))
+    def _append_resources(self, acc, bundle, resource_type):
+        acc.extend(self._find_resources_from_bundle(bundle, resource_type))
         return acc
 
-    def _find_resources(self, resourceType):
+    def _find_resources(self, resource_type):
         resources = reduce(
-            lambda acc, bundle: self._appendResources(acc, bundle, resourceType),
+            lambda acc, bundle: self._append_resources(acc, bundle, resource_type),
             self.bundles.values(),
             [])
         
@@ -75,7 +75,7 @@ class FHIRpandas:
             
         return (resources, ids)
 
-    def _getResources(self, resource_type):
+    def _get_resources(self, resource_type):
         cached_res = self._resource_cache.get(resource_type, None)
         if (cached_res != None):
             return cached_res
@@ -85,5 +85,5 @@ class FHIRpandas:
         return resources
 
     def create_df(self, resource_type):
-        resources = self._getResources(resource_type)
+        resources = self._get_resources(resource_type)
         return df_generation.create_df(resources)
