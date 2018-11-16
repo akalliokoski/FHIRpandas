@@ -10,6 +10,12 @@
 * documentation
 * module creation (pip)
 
+* FHIR specifications support
+    * should support all the values in codes
+        * currently only first code is used e.g. from encounter code and reason code
+    * add also code system along with code values
+        * currently SNOMED-CT code system expected
+
 * applications
     * notebooks / posts (kaggle kernels, medium)
         * deep learning in healthcare: FHIR, FHIRpandas and fastai
