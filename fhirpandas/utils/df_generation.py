@@ -3,35 +3,35 @@ import pandas as pd
 import fhirpandas.constants.meta as meta
 import fhirpandas.constants.resources.encounter as ce
 
-def _getValue(obj, path, default = None):
+def _getvalue(obj, path, default = None):
     if (len(path) == 0 or obj == None):
         return default
     
-    nextAttr = path.pop(0)
+    next_attr = path.pop(0)
 
-    nextObj = None
+    next_obj = None
     if (isinstance(obj, list)):
-        nextObj = _getListValue(obj, nextAttr, default)
+        next_obj = _getlistvalue(obj, next_attr, default)
     else:
-        nextObj = getattr(obj, nextAttr, default)
+        next_obj = getattr(obj, next_attr, default)
 
     if (len(path) == 0):
-        return nextObj
+        return next_obj
     
-    return _getValue(nextObj, path, default)
+    return _getvalue(next_obj, path, default)
 
-def _getListValue(lst, index, default = None):
+def _getlistvalue(lst, index, default = None):
     return lst[index] if index < len(lst) else default
 
-def _resourceToDict(resource):
+def _createdict(resource):
     res_type = resource.resource_type
     paths = meta.paths(res_type)
     columns = meta.columns(res_type)
-    values = [_getValue(resource, paths[c].copy()) for c in columns]
+    values = [_getvalue(resource, paths[c].copy()) for c in columns]
     return dict(zip(columns, values))
 
 def create_df(resources):
     # TODO: use ids as index
     # TODO: set data types
-    encounterDicts = [_resourceToDict(e) for e in resources]
-    return pd.DataFrame(encounterDicts)
+    dicts = [_createdict(e) for e in resources]
+    return pd.DataFrame(dicts)
