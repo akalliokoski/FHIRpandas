@@ -56,17 +56,16 @@ class FhirPandas:
         if (bundle.entry == None):
             return []
         
-        return [entry.resource for entry in bundle.entry if entry.resource.resource_type == resource_type]
+        return [entry.resource for entry in bundle.entry
+                if entry.resource.resource_type == resource_type]
 
     def _append_resources(self, acc, bundle, resource_type):
         acc.extend(self._find_resources_from_bundle(bundle, resource_type))
         return acc
 
     def _find_resources(self, resource_type):
-        resources = reduce(
-            lambda acc, bundle: self._append_resources(acc, bundle, resource_type),
-            self.bundles.values(),
-            [])
+        rfunc = lambda acc, bundle: self._append_resources(acc, bundle, resource_type)
+        resources = reduce(rfunc, self.bundles.values(), [])
         
         ids = [r.id for r in resources]
         missing_ids = any([r.id == None for r in resources])
