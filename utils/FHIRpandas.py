@@ -7,7 +7,8 @@ import fhirclient.models.patient as p
 from fhirclient.models.fhirabstractbase import FHIRValidationError
 import pandas as pd
 
-import utils.constants.encounter as enc
+import utils.constants.meta as meta
+import utils.constants.encounters as ec
 
 # TODO: memory optimization, performance optimization
 #   ? flag for disabling bundles and resource cache?
@@ -48,8 +49,6 @@ def _load_bundle(path, strict):
 
 class FHIRpandas:
 
-    __ENCOUNTER_RESOURCE_TYPE__ = "Encounter"
-
     _encounters = None
 
     def __init__(self, bundles, validation_errors):
@@ -81,7 +80,7 @@ class FHIRpandas:
 
     def _getEncounters(self):
         if (self._encounters == None):
-            encounters, ids = self._getResources(self.__ENCOUNTER_RESOURCE_TYPE__)
+            encounters, ids = self._getResources(ec.RESOURCE_TYPE)
             self._encounters = dict(zip(ids, encounters))
 
         return self._encounters
@@ -106,16 +105,16 @@ class FHIRpandas:
     def _getListValue(self, lst, index, default = None):
         return lst[index] if index < len(lst) else default
 
-    def _resourceToDict(self, resource, columns, paths):
+    def _resourceToDict(self, resource):
+        res_type = resource.resource_type
+        paths = meta.paths(res_type)
+        columns = meta.columns(res_type)
         values = [self._getValue(resource, paths[c].copy()) for c in columns]
         return dict(zip(columns, values))
-    
-    def _encounterToDict(self, encounter):
-        return self._resourceToDict(encounter, enc.COLUMNS, enc.PATHS)
 
     def encountersDataFrame(self):
         # TODO: use ids as index
-        encounterDicts = [self._encounterToDict(e) for e in self._getEncounters().values()]
+        encounterDicts = [self._resourceToDict(e) for e in self._getEncounters().values()]
         return pd.DataFrame(encounterDicts)
 
 

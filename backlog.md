@@ -4,11 +4,20 @@
 * bundle(s) to
     * csv
     * excel
+* error handling
+    * throwing exceptions
+    * check todos
+* add class FhirDataFrame
 * python naming
 * python best practices
 * linting
+* unit testing
 * documentation
 * module creation (pip)
+
+* additional features
+    * datetime columns generation
+    * an
 
 * FHIR specifications support
     * should support all the values in codes
